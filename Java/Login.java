@@ -1,8 +1,14 @@
+package com.PrimeAuthPro;
+
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.method.PasswordTransformationMethod;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -11,6 +17,17 @@ import android.view.ViewGroup;
 import android.widget.*;
 
 public class Login {
+
+    private static final String APP_ID = "Your App ID";
+    private static final String SECRET_KEY = "Your App Secret Key";
+    private static final String VERSION = "your app version";
+
+    private static final String[] ALLOWED_PACKAGES = {
+            "Admin",
+            "Premium",
+            "VIP",
+            "Moderator"
+    };
 
     private Context context;
     private SharedPreferences sharedPreferences;
@@ -105,32 +122,87 @@ public class Login {
 
     private void setupLoginListener() {
         loginBtn.setOnClickListener(view -> {
-            String username = userInput.getText().toString().trim();
-            String password = passInput.getText().toString().trim();
+            String user = userInput.getText().toString().trim();
+            String pass = passInput.getText().toString().trim();
 
-            if (username.isEmpty() || password.isEmpty()) {
+            if (user.isEmpty() || pass.isEmpty()) {
                 toast("Please fill all fields");
                 return;
             }
 
             // Save credentials
             sharedPreferences.edit()
-                    .putString("username", username)
-                    .putString("password", password)
+                    .putString("username", user)
+                    .putString("password", pass)
                     .apply();
 
-            // Simple validation (you can modify this)
-            if (username.equals("admin") && password.equals("password")) {
-                toast("Login Successful!");
-                // Add your success logic here
-            } else {
-                toast("Invalid credentials");
-            }
+            startAuthenticationAnimation();
+
+            showHelpDialog(() -> {
+                AuthHelper.loginWithPackageValidation(context, APP_ID, SECRET_KEY, user, pass, VERSION,
+                        ALLOWED_PACKAGES, new AuthHelper.AuthCallback() {
+                            @Override
+                            public void onSuccess(AuthHelper.LoginResult result) {
+                                new Handler(Looper.getMainLooper()).post(() -> {
+                                    showSuccessAnimation(() -> {
+                                        toast("Login successful!");
+                                    });
+                                });
+                            }
+
+                            @Override
+                            public void onFailure(String reason) {
+                                new Handler(Looper.getMainLooper()).post(() -> {
+                                    showErrorAnimation(reason);
+                                });
+                            }
+                        });
+            });
         });
     }
 
     private void toast(String message) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void startAuthenticationAnimation() {
+        loginBtn.setEnabled(false);
+        loginBtn.setText("AUTHENTICATING...");
+    }
+
+    private void showSuccessAnimation(Runnable onComplete) {
+        loginBtn.setText("SUCCESS!");
+        loginBtn.setBackgroundColor(Color.parseColor("#00CC66"));
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            onComplete.run();
+            loginBtn.setEnabled(true);
+            loginBtn.setText("LOGIN");
+            loginBtn.setBackgroundColor(Color.parseColor("#9406C7"));
+        }, 2000);
+    }
+
+    private void showErrorAnimation(String reason) {
+        loginBtn.setText("FAILED!");
+        loginBtn.setBackgroundColor(Color.parseColor("#FF4444"));
+        toast(reason);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            loginBtn.setEnabled(true);
+            loginBtn.setText("LOGIN");
+            loginBtn.setBackgroundColor(Color.parseColor("#9406C7"));
+        }, 2000);
+    }
+
+    private void showHelpDialog(Runnable onContinue) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("Need Help?");
+        builder.setMessage("Join our Discord server for support and updates.");
+        builder.setPositiveButton("Continue", (d, i) -> onContinue.run());
+        builder.setNegativeButton("Join Discord", (d, i) -> {
+            Intent discord = new Intent(Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://discord.gg/BYCYX3wrpM"));
+            context.startActivity(discord);
+        });
+        builder.show();
     }
 
     private int dpToPx(int dp) {
