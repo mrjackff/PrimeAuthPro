@@ -23,10 +23,7 @@ public class Login {
     private static final String VERSION = "your app version";
 
     private static final String[] ALLOWED_PACKAGES = {
-            "Admin",
-            "Premium",
-            "VIP",
-            "Moderator"
+            "Your Packages 1","Your Packages 2"
     };
 
     private Context context;
