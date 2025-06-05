@@ -1,4 +1,4 @@
-package com.chad;
+package com.PrimeAuthPro;
 
 import android.content.Context;
 import android.os.Build;
